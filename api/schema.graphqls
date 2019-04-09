@@ -1,0 +1,14 @@
+schema {
+    query: Query
+}
+
+type Query {
+ cats:[Cat!]!
+}
+
+type Cat {
+    cat_id: String!
+    thumbnail: String!
+    win: Int!
+    lose: Int!
+}

@@ -7,5 +7,8 @@ node_modules
 # Webpack directories
 .webpack
 
+# local dynamodb directories
+.dynamodb
+
 # Transpiled resources directories
 dist

@@ -3,12 +3,63 @@ service:
 
 # Add the serverless-webpack plugin
 plugins:
+  - serverless-appsync-plugin
   - serverless-webpack
+  - serverless-dynamodb-local
+  - serverless-appsync-offline
   - serverless-offline
 
 provider:
   name: aws
+  region: eu-central-1
   runtime: nodejs8.10
+  stage: dev
+  profile: chienboul-dev
+
+custom:
+  appsync-offline:
+    port: 62222
+    schema: ${self:custom.appSync.schema}
+    dynamodb:
+      client:
+        endpoint: "http://localhost:8000"
+        region: localhost
+  dynamodb:
+    start:
+      port: 8000
+      inMemory: true
+      migrate: true
+      seed: true
+    seed:
+      test:
+        sources:
+          - table: Cats
+            sources: [api/seed-data/Cats.json]
+  appSync:
+    name: catmash-api
+    schema: './api/schema.graphqls'
+    authenticationType: API_KEY
+    mappingTemplatesLocation: './api/mapping-template'
+    mappingTemplates:
+      - dataSource: Cats
+        type: Query
+        field: cats
+        request: "getCats-request-mapping-template.txt"
+        response: "getCats-response-mapping-template.txt"
+    dataSources:
+      - type: AMAZON_DYNAMODB
+        name: Cats
+        description: 'Cats table'
+        config:
+          tableName: 'Cats'
+          iamRoleStatements:
+            - Effect: "Allow"
+              Action:
+                - "dynamodb:Query"
+                - "dynamodb:UpdateItem"
+              Resource:
+                - "arn:aws:dynamodb:${self:provider.region}:*:table/Cats"
+                - "arn:aws:dynamodb:${self:provider.region}:*:table/Cats/*"
 
 functions:
   hello:
@@ -17,3 +68,30 @@ functions:
       - http:
           method: get
           path: hello
+
+resources:
+  Resources:
+    CatTable:
+      Type: "AWS::DynamoDB::Table"
+      Properties:
+        TableName: "Cats"
+        KeySchema:
+          -
+            AttributeName: cat_id
+            KeyType: HASH
+        AttributeDefinitions:
+          -
+            AttributeName: cat_id
+            AttributeType: S
+#          -
+#            AttributeName: thumbnail
+#            AttributeType: S
+#          -
+#            AttributeName: win
+#            AttributeType: N
+#          -
+#            AttributeName: lose
+#            AttributeType: N
+        ProvisionedThroughput:
+          ReadCapacityUnits: 10
+          WriteCapacityUnits: 10
